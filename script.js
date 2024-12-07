@@ -4,10 +4,77 @@ const fileInput = document.getElementById('fileInput');
 const content = document.getElementById('content');
 const refreshButton = document.getElementById('refreshBalances');
 
+
+async function fetchMarketCap(coinId) {
+    try {
+        // example of returned result
+        // {
+            //     "data": [
+                //       {
+        //         "id": "90",
+        //         "symbol": "BTC",
+        //         "name": "Bitcoin",
+        //         "nameid": "bitcoin",
+        //         "rank": 1,
+        //         "price_usd": "99584.59",
+        //         "percent_change_24h": "1.25",
+        //         "percent_change_1h": "0.13",
+        //         "percent_change_7d": "2.39",
+        //         "price_btc": "1.00",
+        //         "market_cap_usd": "1967874549929.50",
+        //         "volume24": 60985129577.58225,
+        //         "volume24a": 88750734120.79686,
+        //         "csupply": "19760834.00",
+        //         "tsupply": "19760834",
+        //         "msupply": "21000000"
+        //       },
+        //       {
+            //         "id": "80",
+        //         "symbol": "ETH",
+        //         "name": "Ethereum",
+        //         "nameid": "ethereum",
+        //         "rank": 2,
+        //         "price_usd": "3992.98",
+        //         "percent_change_24h": "2.96",
+        //         "percent_change_1h": "0.20",
+        //         "percent_change_7d": "11.35",
+        //         "price_btc": "0.040095",
+        //         "market_cap_usd": "480068899829.40",
+        //         "volume24": 33547453794.48112,
+        //         "volume24a": 36792209972.45373,
+        //         "csupply": "120228315.00",
+        //         "tsupply": "122375302",
+        //         "msupply": ""
+        //       },
+        //     ]
+        // }
+        const response = await fetch(`https://api.coinlore.net/api/tickers/`);
+        return (await response.json()).data;
+    } catch (error) {
+        console.error('Error fetching market cap:', error);
+        return null;
+    }
+}
+const marketCapMap = await fetchMarketCap();
+
+console.log("fetched market caps");
+// Calculate market cap percentages for provided symbols
+function calculatePercentages(symbols) {
+    const totalMarketCap = symbols.reduce((sum, symbol) => sum + (Number(marketCapMap.find(coin => coin.symbol === symbol).market_cap_usd) || 0), 0);
+    return new Map(
+        symbols.map(symbol => [
+            symbol,
+            (Number(marketCapMap.find(coin => coin.symbol === symbol).market_cap_usd) / totalMarketCap) * 100
+        ])
+    );
+}
+
+
+
 function detectAddressType(token) {
     const tokenLower = token.toLowerCase();
     if (tokenLower === 'btc') return 'BTC';
-    const erc20Tokens = ['eth', 'usdt', 'usdc', 'xlm', 'aave', 'link', 'uni', 'pol', 'fet', 'arb', 'grt', 'weth'];
+    const erc20Tokens = ['eth', 'usdt', 'usdc', 'xlm', 'aave', 'link', 'uni', 'pol', 'fet', 'arb', 'grt', 'weth','matic'];
     if (erc20Tokens.includes(tokenLower)) return 'ERC20';
     if (tokenLower === 'bnb') return 'BEP20';
     if (tokenLower === 'trx') return 'TRC20';
@@ -15,6 +82,7 @@ function detectAddressType(token) {
     if (tokenLower === 'sol' || tokenLower === 'ray') return 'SPL';
     if (tokenLower === 'near') return 'NEAR';
     if (tokenLower === 'theta') return 'THETA';
+    if (tokenLower === 'dot') return 'DOT';
     return 'Unknown';
 }
 
@@ -29,12 +97,18 @@ async function fetchCurrentBalance(address, token) {
         }
         
         if (type === 'ERC20') {
-            const web3 = new Web3('https://rpc.ankr.com/eth');
+            let web3 = new Web3('https://rpc.ankr.com/eth');
             
             if (token === 'ETH') {
                 const balance = await web3.eth.getBalance(address);
                 return web3.utils.fromWei(balance, 'ether');
-            } else {
+            }
+            else if (token === 'POL') {
+                web3 = new Web3('https://rpc.ankr.com/polygon');
+                const balance = await web3.eth.getBalance(address);
+                return web3.utils.fromWei(balance, 'ether');
+            }
+            else{
                 const tokenContracts = {
                     'USDT': {
                         address: '0xdac17f958d2ee523a2206206994597c13d831ec7',
@@ -57,7 +131,7 @@ async function fetchCurrentBalance(address, token) {
                         decimals: 18
                     },
                     'POL': {
-                        address: '0x9992eC3cF6A55b00978cdDF2b27BC6882d88D1eC',
+                        address: '0x455e53CBB86018Ac2B8092FdCd39d8444aFFC3F6',
                         decimals: 18
                     },
                     'FET': {
@@ -148,33 +222,37 @@ async function fetchCurrentBalance(address, token) {
 
         if (type === 'SPL') {
             try {
+                const payload = JSON.stringify({
+                    "jsonrpc": "2.0",
+                    "id": 1,
+                    "method": "getBalance",
+                    "params": [address]
+                })
                 const response = await fetch('https://api.mainnet-beta.solana.com', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'User-Agent': 'solana-client/1.0.0',
+                        'Cache-Control': 'no-cache'
                     },
-                    body: JSON.stringify({
-                        "jsonrpc": "2.0",
-                        "id": 1,
-                        "method": "getBalance",
-                        "params": [address]
-                    })
+                    body: payload
                 });
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                
+        
                 const data = await response.json();
-                if (data.result && data.result.value !== undefined) {
-                    return data.result.value / 1000000000;
+                if (data.error) {
+                    throw new Error(data.error.message);
                 }
-                return 'Error';
-            } catch (solanaError) {
+                
+                // Convert lamports to SOL
+                return data.result.value / 1e9;
+        
+                } catch (solanaError) {
                 console.error('Solana balance fetch error:', solanaError);
                 return 'API Error';
             }
         }
+        
 
         if (type === 'NEAR') {
             try {
@@ -225,6 +303,24 @@ async function fetchCurrentBalance(address, token) {
                 return 'Error';
             } catch (thetaError) {
                 console.error('Theta balance fetch error:', thetaError);
+                return 'API Error';
+            }
+        }
+
+        if (type === 'DOT') {
+            
+            try {
+                   // Create an instance of the API
+                   const api = await polkadot.ApiPromise.create({
+                    provider: new polkadot.WsProvider('wss://rpc.polkadot.io')
+                });
+
+                // Retrieve the balance of the specified address
+                const { data: { free: balance } } = await api.query.system.account(address);
+
+             console.log(balance);
+            } catch (polkadotError) {
+                console.error('Polkadot balance fetch error:', polkadotError);
                 return 'API Error';
             }
         }
@@ -319,15 +415,24 @@ function updateFilters() {
 
 function updateTable(filtered = addresses) {
     const tbody = document.querySelector('#addressTable tbody');
-    tbody.innerHTML = filtered.map(addr => `
-        <tr>
-            <td><span class="address-type type-${addr.type.toLowerCase().replace(/\s+/g, '-')}">${addr.type}</span></td>
-            <td>${addr.address}</td>
-            <td class="token-name">${addr.token}</td>
-            <td>${addr.comment}</td>
-            <td class="balance">${addr.currentBalance}</td>
-        </tr>
-    `).join('');
+    const symbols = filtered.map(addr => addr.token.toUpperCase());
+    const percentages = calculatePercentages(symbols);
+
+    tbody.innerHTML = filtered.map(addr => {
+        const marketCap = marketCapMap.find(coin => coin.symbol === addr.token.toUpperCase()).market_cap_usd || 'N/A';
+        const percentage = percentages.get(addr.token.toUpperCase()) || 'N/A';
+        return `
+            <tr>
+                <td><span class="address-type type-${addr.type.toLowerCase().replace(/\s+/g, '-')}">${addr.type}</span></td>
+                <td>${addr.address}</td>
+                <td class="token-name">${addr.token}</td>
+                <td>${addr.comment}</td>
+                <td class="balance">${addr.currentBalance}</td>
+                <td class="market-cap">${marketCap}</td>
+                <td class="market-cap-percentage">${percentage.toFixed(2)}%</td>
+            </tr>
+        `;
+    }).join('');
 }
 
 function filterAddresses() {
@@ -403,4 +508,5 @@ document.getElementById('typeFilter').addEventListener('change', () => updateTab
 document.getElementById('tokenFilter').addEventListener('change', () => updateTable(filterAddresses()));
 
 // Add refresh button listener
-refreshButton.addEventListener('click', updateBalances); 
+refreshButton.addEventListener('click', updateBalances);
+
