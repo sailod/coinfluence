@@ -60,13 +60,23 @@ const marketCapMap = await fetchMarketCap();
 console.log("fetched market caps");
 // Calculate market cap percentages for provided symbols
 function calculatePercentages(symbols) {
-    const totalMarketCap = symbols.reduce((sum, symbol) => sum + (Number(marketCapMap.find(coin => coin.symbol === symbol).market_cap_usd) || 0), 0);
-    return new Map(
-        symbols.map(symbol => [
-            symbol,
-            (Number(marketCapMap.find(coin => coin.symbol === symbol).market_cap_usd) / totalMarketCap) * 100
-        ])
-    );
+    // Check if all symbols exist in marketCapMap
+    const missingSymbols = symbols.filter(symbol => !marketCapMap.find(coin => coin.symbol === symbol));
+    if (missingSymbols.length > 0) {
+        throw new Error(`Missing market cap data for symbols: ${missingSymbols.join(', ')}`);
+    }
+    try {
+        const totalMarketCap = symbols.reduce((sum, symbol) => sum + (Number(marketCapMap.find(coin => coin.symbol === symbol).market_cap_usd) || 0), 0);
+        return new Map(
+            symbols.map(symbol => [
+                symbol,
+                (Number(marketCapMap.find(coin => coin.symbol === symbol).market_cap_usd) / totalMarketCap) * 100
+            ])
+        );
+    } catch (error) {
+        console.error('Error calculating market cap percentages:', error);
+        return new Map();
+    }
 }
 
 
@@ -83,6 +93,7 @@ function detectAddressType(token) {
     if (tokenLower === 'near') return 'NEAR';
     if (tokenLower === 'theta') return 'THETA';
     if (tokenLower === 'dot') return 'DOT';
+    if (tokenLower === 'avax') return 'AVAX';
     return 'Unknown';
 }
 
@@ -324,6 +335,17 @@ async function fetchCurrentBalance(address, token) {
                 return 'API Error';
             }
         }
+
+        if (type === 'AVAX') {
+            try {
+                const web3 = new Web3('https://api.avax.network/ext/bc/C/rpc');
+                const balance = await web3.eth.getBalance(address);
+                return web3.utils.fromWei(balance, 'ether');
+            } catch (avaxError) {
+                console.error('Avalanche balance fetch error:', avaxError);
+                return 'API Error';
+            }
+        }
         
         return 'Unsupported';
     } catch (error) {
@@ -423,8 +445,8 @@ function updateTable(filtered = addresses) {
         const percentage = percentages.get(addr.token.toUpperCase()) || 'N/A';
         return `
             <tr>
-                <td><span class="address-type type-${addr.type.toLowerCase().replace(/\s+/g, '-')}">${addr.type}</span></td>
-                <td>${addr.address}</td>
+                <td ><span class="address-type type-${addr.type.toLowerCase().replace(/\s+/g, '-')}">${addr.type}</span></td>
+                <td class="address">${addr.address}</td>
                 <td class="token-name">${addr.token}</td>
                 <td>${addr.comment}</td>
                 <td class="balance">${addr.currentBalance}</td>
@@ -509,4 +531,3 @@ document.getElementById('tokenFilter').addEventListener('change', () => updateTa
 
 // Add refresh button listener
 refreshButton.addEventListener('click', updateBalances);
-

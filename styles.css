@@ -10,6 +10,7 @@ body {
     padding: 20px;
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    overflow-x: auto;
 }
 .header {
     display: flex;
@@ -42,6 +43,7 @@ table {
     width: 100%;
     border-collapse: collapse;
     margin-top: 20px;
+    min-width: 800px;
 }
 th, td {
     padding: 12px;
@@ -55,6 +57,11 @@ th {
     top: 0;
     background: white;
     z-index: 10;
+}
+td.address {
+    max-width: 500px;
+    overflow-x: auto;
+    white-space: nowrap;
 }
 .tag {
     display: inline-block;
