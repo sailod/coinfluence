@@ -1,0 +1,8 @@
+# Bitcoin (BTC)
+1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa    BTC    Satoshi's Genesis Address
+
+# Ethereum (ETH & ERC20)
+0x742d35Cc6634C0532925a3b844Bc454e4438f44e    ETH    Ethereum Foundation
+
+# Solana (SOL)
+52C9T2T7JRojtxumYnYZhyUmrN7kqzvCLc4Ksvjk7TxD    SOL    Top Solana Holder

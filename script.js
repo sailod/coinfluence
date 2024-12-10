@@ -84,7 +84,7 @@ function calculatePercentages(symbols) {
 function detectAddressType(token) {
     const tokenLower = token.toLowerCase();
     if (tokenLower === 'btc') return 'BTC';
-    const erc20Tokens = ['eth', 'usdt', 'usdc', 'xlm', 'aave', 'link', 'uni', 'pol', 'fet', 'arb', 'grt', 'weth','matic'];
+    const erc20Tokens = ['eth', 'usdt', 'usdc', 'aave', 'link', 'uni', 'pol', 'fet', 'arb', 'grt', 'weth','matic', 'op', 'mkr'];
     if (erc20Tokens.includes(tokenLower)) return 'ERC20';
     if (tokenLower === 'bnb') return 'BEP20';
     if (tokenLower === 'trx') return 'TRC20';
@@ -94,6 +94,10 @@ function detectAddressType(token) {
     if (tokenLower === 'theta') return 'THETA';
     if (tokenLower === 'dot') return 'DOT';
     if (tokenLower === 'avax') return 'AVAX';
+    if (tokenLower === 'xrp') return 'XRP';
+    if (tokenLower === 'ton') return 'TON';
+    if (tokenLower === 'xlm') return 'XLM';
+    if (tokenLower === 'sui') return 'SUI';
     return 'Unknown';
 }
 
@@ -160,6 +164,14 @@ async function fetchCurrentBalance(address, token) {
                     'WETH': {
                         address: '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',
                         decimals: 18
+                    },
+                    'OP': {
+                        address: '0x4200000000000000000000000000000000000042',
+                        decimals: 18
+                    },
+                    'MKR': {
+                        address: '0x9f8F72aA9304c8B593d555F12eF6589cC3A579A2',
+                        decimals: 18
                     }
                 };
                 
@@ -176,8 +188,13 @@ async function fetchCurrentBalance(address, token) {
                     }
                 ], tokenInfo.address);
                 
-                const balance = await contract.methods.balanceOf(address).call();
-                return balance / Math.pow(10, tokenInfo.decimals);
+                try {
+                    const balance = await contract.methods.balanceOf(address).call();
+                    return balance / Math.pow(10, tokenInfo.decimals);
+                } catch (error) {
+                    console.error('Error fetching ERC20 token balance:', error);
+                    return 'API Error';
+                }
             }
         }
 
@@ -205,7 +222,7 @@ async function fetchCurrentBalance(address, token) {
             try {
                 const response = await fetch(`https://cardano-mainnet.blockfrost.io/api/v0/addresses/${address}`, {
                     headers: {
-                        'project_id': 'mainnetXXXXXXXXXXXXXX'
+                        'project_id': 'mainnetFLAREBASE01'
                     }
                 });
                 
@@ -309,7 +326,11 @@ async function fetchCurrentBalance(address, token) {
                 
                 const data = await response.json();
                 if (data.body && data.body.balance !== undefined) {
-                    return data.body.balance / 1e18;
+                    const balances = {
+                        THETA: Number(data.body.balance.thetawei) / 1e18,
+                        TFUEL: Number(data.body.balance.tfuelwei) / 1e18
+                    }
+                    return balances[token];
                 }
                 return 'Error';
             } catch (thetaError) {
@@ -343,6 +364,94 @@ async function fetchCurrentBalance(address, token) {
                 return web3.utils.fromWei(balance, 'ether');
             } catch (avaxError) {
                 console.error('Avalanche balance fetch error:', avaxError);
+                return 'API Error';
+            }
+        }
+
+        if (type === 'XRP') {
+            try {
+                const client = new xrpl.Client('wss://s1.ripple.com');
+                await client.connect();
+                
+                const response = await client.request({
+                    command: 'account_info',
+                    account: address,
+                    ledger_index: 'validated'
+                });
+
+                await client.disconnect();
+
+                if (response.result && response.result.account_data && response.result.account_data.Balance) {
+                    return Number(response.result.account_data.Balance) / 1000000; // Convert from drops to XRP
+                }
+                return 'Error';
+            } catch (xrpError) {
+                console.error('XRP balance fetch error:', xrpError);
+                return 'API Error';
+            }
+        }
+
+        if (type === 'TON') {
+            try {
+                const response = await fetch(`https://toncenter.com/api/v2/getAddressBalance?address=${address}`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
+                if (data.ok && data.result) {
+                    return Number(data.result) / 1e9; // Convert from nanoTON to TON
+                }
+                return 'Error';
+            } catch (tonError) {
+                console.error('TON balance fetch error:', tonError);
+                return 'API Error';
+            }
+        }
+
+        if (type === 'XLM') {
+            try {
+                const response = await fetch(`https://horizon.stellar.org/accounts/${address}`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
+                const xlmBalance = data.balances.find(b => b.asset_type === 'native');
+                if (xlmBalance) {
+                    return Number(xlmBalance.balance);
+                }
+                return 0;
+            } catch (xlmError) {
+                console.error('Stellar balance fetch error:', xlmError);
+                return 'API Error';
+            }
+        }
+
+        if (type === 'SUI') {
+            try {
+                const response = await fetch('https://fullnode.mainnet.sui.io:443', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        jsonrpc: '2.0',
+                        id: 1,
+                        method: 'suix_getBalance',
+                        params: [address, '0x2::sui::SUI']
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                if (data.result && data.result.totalBalance) {
+                    return Number(data.result.totalBalance) / 1e9; // Convert from MIST to SUI
+                }
+                return 'Error';
+            } catch (suiError) {
+                console.error('SUI balance fetch error:', suiError);
                 return 'API Error';
             }
         }
