@@ -84,7 +84,7 @@ function calculatePercentages(symbols) {
 function detectAddressType(token) {
     const tokenLower = token.toLowerCase();
     if (tokenLower === 'btc') return 'BTC';
-    const erc20Tokens = ['eth', 'usdt', 'usdc', 'aave', 'link', 'uni', 'pol', 'fet', 'arb', 'grt', 'weth','matic', 'op', 'mkr'];
+    const erc20Tokens = ['eth', 'usdt', 'usdc', 'aave', 'link', 'uni', 'pol', 'fet', 'arb', 'grt', 'weth','matic', 'op', 'mkr', 'ldo', 'render', 'gala'];
     if (erc20Tokens.includes(tokenLower)) return 'ERC20';
     if (tokenLower === 'bnb') return 'BEP20';
     if (tokenLower === 'trx') return 'TRC20';
@@ -98,6 +98,7 @@ function detectAddressType(token) {
     if (tokenLower === 'ton') return 'TON';
     if (tokenLower === 'xlm') return 'XLM';
     if (tokenLower === 'sui') return 'SUI';
+    if (tokenLower === 'hnt') return 'HNT';
     return 'Unknown';
 }
 
@@ -172,6 +173,18 @@ async function fetchCurrentBalance(address, token) {
                     'MKR': {
                         address: '0x9f8F72aA9304c8B593d555F12eF6589cC3A579A2',
                         decimals: 18
+                    },
+                    'LDO': {
+                        address: '0x5A98FcBEA516Cf06857215779Fd812CA3beF1B32',
+                        decimals: 18
+                    },
+                    'RENDER': {
+                        address: '0x6de037ef9ad2725eb40118bb1702ebb27e4aeb24',
+                        decimals: 18
+                    },
+                    'GALA': {
+                        address: '0xd1d2Eb1B1e90B638588728b4130137D262C87cae',
+                        decimals: 8
                     }
                 };
                 
@@ -452,6 +465,23 @@ async function fetchCurrentBalance(address, token) {
                 return 'Error';
             } catch (suiError) {
                 console.error('SUI balance fetch error:', suiError);
+                return 'API Error';
+            }
+        }
+
+        if (type === 'HNT') {
+            try {
+                const response = await fetch(`https://api.helium.io/v1/accounts/${address}`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
+                if (data.data && data.data.balance) {
+                    return Number(data.data.balance) / 1e8; // Convert from bones to HNT
+                }
+                return 'Error';
+            } catch (hntError) {
+                console.error('Helium balance fetch error:', hntError);
                 return 'API Error';
             }
         }

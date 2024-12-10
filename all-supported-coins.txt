@@ -74,35 +74,42 @@ EQDtFpEwcFAEcRe5mLVh2N6C0x-_hJEM7W61_JLnSF74p4q2    TON    Toncoin Top Holder
 0xf977814e90da44bfa03b6295a0616a897441acec    MKR    Maker Top Holder Binance
 
 # Lido (LDO)
-0x0000000000000000000000000000000000000000    LDO    Lido Top Holder
+0x3e40d73eb977dc6a537af587d48316fee66e9c8c    LDO    Lido Top Holder
 
 # FET
-0x0000000000000000000000000000000000000000    FET    Fetch Top Holder
+0xf977814e90da44bfa03b6295a0616a897441acec    FET    FET Top Holder Binance
 
-# Helium (HNT)
-0x0000000000000000000000000000000000000000    HNT    Helium Top Holder
+# GALA 
+0xab4a1ff6b3c029f47baae511d304050787e77521    GALA    GALA Top Holder Binance
 
-# Render (RNDR)
-0x0000000000000000000000000000000000000000    RNDR    Render Top Holder
 
 # Not supported by coinlore
 # Internet Computer (ICP)
 #609d3e1e45103a82adc97d4f88c51f78dedb25701e8e51e8c4fec53448aadc29    ICP    Internet Computer Top Holder (Governance)
 
+
+# Not supported yet, require specific implementation
 # Polygon (POL)
 # 0xe84F75FC9cAA49876d0Ba18d309da4231d44E94D    POL    Kraken
 
 # Polkadot (DOT)
-16ZL8yLyXv3V3L3z9ofR1ovFLziyXaN1DPq4yffMAZ9czzBD    DOT    Polkadot Top Holder (Governance)
+#16ZL8yLyXv3V3L3z9ofR1ovFLziyXaN1DPq4yffMAZ9czzBD    DOT    Polkadot Top Holder (Governance)
 
 # Cardano (ADA)
-addr1q8elqhkuvtyelgcedpup58r893awhg3l87a4rz5d5acatuj9y84nruafrmta2rewd5l46g8zxy4l49ly8kye79ddr3ksqal    ADA    Cardano Weatlhiest
+#addr1q8elqhkuvtyelgcedpup58r893awhg3l87a4rz5d5acatuj9y84nruafrmta2rewd5l46g8zxy4l49ly8kye79ddr3ksqal    ADA    Cardano Weatlhiest
 
 # Hedera (HBAR)
-0.0.2    HBAR    Hedera Top Holder
+#0.0.2    HBAR    Hedera Top Holder
 
 # Optimism (OP)
-0x2501c477d0a35545a387aa4a3eee4292a9a8b3f0    OP    Optimism Top Holder
+#0x2501c477d0a35545a387aa4a3eee4292a9a8b3f0    OP    Optimism Top Holder
+
+# Helium (HNT)
+#BUCbfE1pbjUYrdw39kFWHqE3GuvwNVpN4gpWkmugQCpR    HNT    Helium Top Holder
+
+# Render (RENDER)
+#AyzyikXL9kKs2cwyHsWLEe22aRYAvhbWwFn9TKrgmMx    RENDER    Render Top Holder
+
 
 # Notes and Categories
 # Last Updated: 2024-03-15
